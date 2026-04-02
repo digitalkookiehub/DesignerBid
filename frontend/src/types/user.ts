@@ -24,6 +24,7 @@ export interface RegisterRequest {
   password: string;
   full_name: string;
   company_name?: string;
+  role?: 'user' | 'admin';
 }
 
 export interface TokenResponse {

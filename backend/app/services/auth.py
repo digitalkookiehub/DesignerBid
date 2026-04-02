@@ -22,11 +22,15 @@ def register(db: Session, data: UserCreate) -> User:
     if existing:
         raise ConflictError("Email already registered")
 
+    from app.models.user import UserRole
+    role = UserRole(data.role) if data.role in ("user", "admin") else UserRole.user
+
     user = User(
         email=data.email,
         hashed_password=hash_password(data.password),
         full_name=data.full_name,
         company_name=data.company_name,
+        role=role,
     )
     db.add(user)
     db.commit()

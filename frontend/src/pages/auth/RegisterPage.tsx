@@ -11,6 +11,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [companyName, setCompanyName] = useState('');
+  const [role, setRole] = useState<'user' | 'admin'>('user');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -27,7 +28,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register({ email, password, full_name: fullName, company_name: companyName || undefined });
+      await register({ email, password, full_name: fullName, company_name: companyName || undefined, role });
       navigate('/login');
     } catch {
       setError('Registration failed. Email may already be in use.');
@@ -82,6 +83,33 @@ export default function RegisterPage() {
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
           />
+          <div className="space-y-1.5">
+            <label className="block text-sm font-medium text-gray-700">Account Type</label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setRole('user')}
+                className={`flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-medium transition-all ${
+                  role === 'user'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                Designer
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('admin')}
+                className={`flex-1 py-2.5 px-4 rounded-lg border-2 text-sm font-medium transition-all ${
+                  role === 'admin'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                Admin
+              </button>
+            </div>
+          </div>
           <GradientButton type="submit" isLoading={loading} className="w-full">
             Create Account
           </GradientButton>
