@@ -21,6 +21,9 @@ services:
     restart: always
     environment:
       DATABASE_URL: postgresql://${DB_USER:-designbid}:${DB_PASSWORD:-designbid_prod_2024}@db:5432/${DB_NAME:-designbid}
+      DB_USER: ${DB_USER:-designbid}
+      DB_PASSWORD: ${DB_PASSWORD:-designbid_prod_2024}
+      DB_NAME: ${DB_NAME:-designbid}
       SECRET_KEY: ${SECRET_KEY:-dB-pr0d-s3cr3t-k3y-ch4ng3-th1s-2024-x7k9m2}
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
