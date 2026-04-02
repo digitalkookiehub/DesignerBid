@@ -16,8 +16,11 @@ def get_clients(
     page: int = 1,
     per_page: int = 10,
     search: str = "",
+    is_admin: bool = False,
 ) -> PaginatedClientResponse:
-    query = db.query(Client).filter(Client.user_id == user_id, Client.is_active == True)  # noqa: E712
+    query = db.query(Client).filter(Client.is_active == True)  # noqa: E712
+    if not is_admin:
+        query = query.filter(Client.user_id == user_id)
 
     if search:
         query = query.filter(
@@ -38,8 +41,11 @@ def get_clients(
     )
 
 
-def get_client(db: Session, user_id: int, client_id: int) -> Client:
-    client = db.query(Client).filter(Client.id == client_id, Client.user_id == user_id, Client.is_active == True).first()  # noqa: E712
+def get_client(db: Session, user_id: int, client_id: int, is_admin: bool = False) -> Client:
+    query = db.query(Client).filter(Client.id == client_id, Client.is_active == True)  # noqa: E712
+    if not is_admin:
+        query = query.filter(Client.user_id == user_id)
+    client = query.first()
     if not client:
         raise NotFoundError("Client")
     return client
@@ -67,8 +73,8 @@ def create_client(db: Session, user_id: int, data: ClientCreate) -> Client:
     return client
 
 
-def update_client(db: Session, user_id: int, client_id: int, data: ClientUpdate) -> Client:
-    client = get_client(db, user_id, client_id)
+def update_client(db: Session, user_id: int, client_id: int, data: ClientUpdate, is_admin: bool = False) -> Client:
+    client = get_client(db, user_id, client_id, is_admin=is_admin)
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(client, key, value)
@@ -78,15 +84,15 @@ def update_client(db: Session, user_id: int, client_id: int, data: ClientUpdate)
     return client
 
 
-def delete_client(db: Session, user_id: int, client_id: int) -> None:
-    client = get_client(db, user_id, client_id)
+def delete_client(db: Session, user_id: int, client_id: int, is_admin: bool = False) -> None:
+    client = get_client(db, user_id, client_id, is_admin=is_admin)
     client.is_active = False
     db.commit()
     logger.info("Client soft-deleted: id=%d", client_id)
 
 
-def add_note(db: Session, user_id: int, client_id: int, content: str) -> ClientNote:
-    get_client(db, user_id, client_id)  # verify ownership
+def add_note(db: Session, user_id: int, client_id: int, content: str, is_admin: bool = False) -> ClientNote:
+    get_client(db, user_id, client_id, is_admin=is_admin)  # verify ownership
     note = ClientNote(client_id=client_id, user_id=user_id, content=content)
     db.add(note)
     db.commit()
@@ -94,6 +100,6 @@ def add_note(db: Session, user_id: int, client_id: int, content: str) -> ClientN
     return note
 
 
-def get_notes(db: Session, user_id: int, client_id: int) -> list[ClientNote]:
-    get_client(db, user_id, client_id)  # verify ownership
+def get_notes(db: Session, user_id: int, client_id: int, is_admin: bool = False) -> list[ClientNote]:
+    get_client(db, user_id, client_id, is_admin=is_admin)  # verify ownership
     return db.query(ClientNote).filter(ClientNote.client_id == client_id).order_by(ClientNote.created_at.desc()).all()

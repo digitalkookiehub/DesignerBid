@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_active_user
 from app.database import get_db
 from app.exceptions import AppException
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.client import (
     ClientCreate,
     ClientNoteCreate,
@@ -31,7 +31,7 @@ async def list_clients(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ) -> PaginatedClientResponse:
-    return client_service.get_clients(db, current_user.id, page, per_page, search)
+    return client_service.get_clients(db, current_user.id, page, per_page, search, is_admin=current_user.role == UserRole.admin)
 
 
 @router.post("", response_model=ClientResponse, status_code=201)
@@ -54,7 +54,7 @@ async def get_client(
     db: Session = Depends(get_db),
 ) -> ClientResponse:
     try:
-        return client_service.get_client(db, current_user.id, client_id)
+        return client_service.get_client(db, current_user.id, client_id, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -67,7 +67,7 @@ async def update_client(
     db: Session = Depends(get_db),
 ) -> ClientResponse:
     try:
-        return client_service.update_client(db, current_user.id, client_id, data)
+        return client_service.update_client(db, current_user.id, client_id, data, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -79,7 +79,7 @@ async def delete_client(
     db: Session = Depends(get_db),
 ) -> MessageResponse:
     try:
-        client_service.delete_client(db, current_user.id, client_id)
+        client_service.delete_client(db, current_user.id, client_id, is_admin=current_user.role == UserRole.admin)
         return MessageResponse(message="Client deleted")
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
@@ -93,7 +93,7 @@ async def add_note(
     db: Session = Depends(get_db),
 ) -> ClientNoteResponse:
     try:
-        return client_service.add_note(db, current_user.id, client_id, data.content)
+        return client_service.add_note(db, current_user.id, client_id, data.content, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -105,6 +105,6 @@ async def get_notes(
     db: Session = Depends(get_db),
 ) -> list[ClientNoteResponse]:
     try:
-        return client_service.get_notes(db, current_user.id, client_id)
+        return client_service.get_notes(db, current_user.id, client_id, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)

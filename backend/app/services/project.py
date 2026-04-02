@@ -12,8 +12,10 @@ from app.schemas.project import PaginatedProjectResponse, ProjectCreate, Project
 logger = logging.getLogger(__name__)
 
 
-def get_projects(db: Session, user_id: int, page: int = 1, per_page: int = 10, search: str = "", status_filter: str = "") -> PaginatedProjectResponse:
-    query = db.query(Project).filter(Project.user_id == user_id)
+def get_projects(db: Session, user_id: int, page: int = 1, per_page: int = 10, search: str = "", status_filter: str = "", is_admin: bool = False) -> PaginatedProjectResponse:
+    query = db.query(Project)
+    if not is_admin:
+        query = query.filter(Project.user_id == user_id)
     if search:
         query = query.filter(Project.name.ilike(f"%{search}%"))
     if status_filter:
@@ -32,8 +34,11 @@ def get_projects(db: Session, user_id: int, page: int = 1, per_page: int = 10, s
     )
 
 
-def get_project(db: Session, user_id: int, project_id: int) -> Project:
-    project = db.query(Project).options(joinedload(Project.rooms)).filter(Project.id == project_id, Project.user_id == user_id).first()
+def get_project(db: Session, user_id: int, project_id: int, is_admin: bool = False) -> Project:
+    query = db.query(Project).options(joinedload(Project.rooms)).filter(Project.id == project_id)
+    if not is_admin:
+        query = query.filter(Project.user_id == user_id)
+    project = query.first()
     if not project:
         raise NotFoundError("Project")
     return project
@@ -64,8 +69,8 @@ def create_project(db: Session, user_id: int, data: ProjectCreate) -> Project:
     return project
 
 
-def update_project(db: Session, user_id: int, project_id: int, data: ProjectUpdate) -> Project:
-    project = get_project(db, user_id, project_id)
+def update_project(db: Session, user_id: int, project_id: int, data: ProjectUpdate, is_admin: bool = False) -> Project:
+    project = get_project(db, user_id, project_id, is_admin=is_admin)
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         if key in ("total_area_sqft", "budget_min", "budget_max") and value is not None:
@@ -77,15 +82,15 @@ def update_project(db: Session, user_id: int, project_id: int, data: ProjectUpda
     return project
 
 
-def delete_project(db: Session, user_id: int, project_id: int) -> None:
-    project = get_project(db, user_id, project_id)
+def delete_project(db: Session, user_id: int, project_id: int, is_admin: bool = False) -> None:
+    project = get_project(db, user_id, project_id, is_admin=is_admin)
     db.delete(project)
     db.commit()
     logger.info("Project deleted: id=%d", project_id)
 
 
-def update_status(db: Session, user_id: int, project_id: int, status: str) -> Project:
-    project = get_project(db, user_id, project_id)
+def update_status(db: Session, user_id: int, project_id: int, status: str, is_admin: bool = False) -> Project:
+    project = get_project(db, user_id, project_id, is_admin=is_admin)
     project.status = ProjectStatus(status)
     db.commit()
     db.refresh(project)
@@ -95,8 +100,8 @@ def update_status(db: Session, user_id: int, project_id: int, status: str) -> Pr
 
 # Room management
 
-def add_room(db: Session, user_id: int, project_id: int, data: RoomCreate) -> Room:
-    get_project(db, user_id, project_id)  # verify ownership
+def add_room(db: Session, user_id: int, project_id: int, data: RoomCreate, is_admin: bool = False) -> Room:
+    get_project(db, user_id, project_id, is_admin=is_admin)  # verify ownership
     room = Room(
         project_id=project_id,
         name=data.name,
@@ -123,13 +128,13 @@ def add_room(db: Session, user_id: int, project_id: int, data: RoomCreate) -> Ro
     return room
 
 
-def get_rooms(db: Session, user_id: int, project_id: int) -> list[Room]:
-    get_project(db, user_id, project_id)  # verify ownership
+def get_rooms(db: Session, user_id: int, project_id: int, is_admin: bool = False) -> list[Room]:
+    get_project(db, user_id, project_id, is_admin=is_admin)  # verify ownership
     return db.query(Room).filter(Room.project_id == project_id).order_by(Room.sort_order).all()
 
 
-def update_room(db: Session, user_id: int, project_id: int, room_id: int, data: RoomUpdate) -> Room:
-    get_project(db, user_id, project_id)  # verify ownership
+def update_room(db: Session, user_id: int, project_id: int, room_id: int, data: RoomUpdate, is_admin: bool = False) -> Room:
+    get_project(db, user_id, project_id, is_admin=is_admin)  # verify ownership
     room = db.query(Room).filter(Room.id == room_id, Room.project_id == project_id).first()
     if not room:
         raise NotFoundError("Room")
@@ -144,8 +149,8 @@ def update_room(db: Session, user_id: int, project_id: int, room_id: int, data: 
     return room
 
 
-def delete_room(db: Session, user_id: int, project_id: int, room_id: int) -> None:
-    get_project(db, user_id, project_id)  # verify ownership
+def delete_room(db: Session, user_id: int, project_id: int, room_id: int, is_admin: bool = False) -> None:
+    get_project(db, user_id, project_id, is_admin=is_admin)  # verify ownership
     room = db.query(Room).filter(Room.id == room_id, Room.project_id == project_id).first()
     if not room:
         raise NotFoundError("Room")

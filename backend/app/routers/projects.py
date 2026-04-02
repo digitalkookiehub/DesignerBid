@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_active_user
 from app.database import get_db
 from app.exceptions import AppException
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.schemas.project import (
     PaginatedProjectResponse,
     ProjectCreate,
@@ -30,7 +30,7 @@ async def list_projects(
     page: int = 1, per_page: int = 10, search: str = "", status: str = "",
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
-    return project_service.get_projects(db, current_user.id, page, per_page, search, status)
+    return project_service.get_projects(db, current_user.id, page, per_page, search, status, is_admin=current_user.role == UserRole.admin)
 
 
 @router.post("", response_model=ProjectResponse, status_code=201)
@@ -48,7 +48,7 @@ async def get_project(
     project_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
     try:
-        return project_service.get_project(db, current_user.id, project_id)
+        return project_service.get_project(db, current_user.id, project_id, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -59,7 +59,7 @@ async def update_project(
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
     try:
-        return project_service.update_project(db, current_user.id, project_id, data)
+        return project_service.update_project(db, current_user.id, project_id, data, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -69,7 +69,7 @@ async def delete_project(
     project_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
     try:
-        project_service.delete_project(db, current_user.id, project_id)
+        project_service.delete_project(db, current_user.id, project_id, is_admin=current_user.role == UserRole.admin)
         return MessageResponse(message="Project deleted")
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
@@ -81,7 +81,7 @@ async def update_status(
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
     try:
-        return project_service.update_status(db, current_user.id, project_id, data.status)
+        return project_service.update_status(db, current_user.id, project_id, data.status, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -94,7 +94,7 @@ async def add_room(
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
     try:
-        return project_service.add_room(db, current_user.id, project_id, data)
+        return project_service.add_room(db, current_user.id, project_id, data, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -104,7 +104,7 @@ async def list_rooms(
     project_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
     try:
-        return project_service.get_rooms(db, current_user.id, project_id)
+        return project_service.get_rooms(db, current_user.id, project_id, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -115,7 +115,7 @@ async def update_room(
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
     try:
-        return project_service.update_room(db, current_user.id, project_id, room_id, data)
+        return project_service.update_room(db, current_user.id, project_id, room_id, data, is_admin=current_user.role == UserRole.admin)
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
@@ -126,7 +126,7 @@ async def delete_room(
     current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db),
 ):
     try:
-        project_service.delete_room(db, current_user.id, project_id, room_id)
+        project_service.delete_room(db, current_user.id, project_id, room_id, is_admin=current_user.role == UserRole.admin)
         return MessageResponse(message="Room deleted")
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)
