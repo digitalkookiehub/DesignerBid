@@ -14,4 +14,4 @@ deploy-production:
     - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
   script:
-    - ssh root@187.127.142.119 "curl -sL https://gitlab.com/digitalkookiehub/DesignBid/-/raw/main/deploy-docker.sh | bash"
+    - ssh root@187.127.142.119 "curl -sL https://raw.githubusercontent.com/digitalkookiehub/DesignerBid/main/deploy-docker.sh | bash"
